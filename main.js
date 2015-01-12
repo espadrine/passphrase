@@ -4,18 +4,18 @@ var fs = require('fs');
 var crypto = require('crypto');
 
 // Read the word file.
-var notEmpty = function(line) { return line && line.length > 0; }
+var notEmpty = function(line) { return line && line.length > 0; };
 var words = fs.readFileSync('./words-en', {encoding:'utf8'})
     .split('\n').filter(notEmpty);
 var wordCount = words.length;
 
-var log2 = function(n) { return Math.log(n) / Math.log(2); }
+var log2 = function(n) { return Math.log(n) / Math.log(2); };
 var wordEntropy = log2(wordCount);
 
 // entropy: requested lower bound of passphrase entropy; number in bits.
 // cb: callback, as function(err, string, actual entropy).
 var passphrase = function(entropy, cb) {
-  if (!entropy) { entropy = 64; }
+  if (entropy == null) { entropy = 64; }
 
   // How many words fill this entropy?
   // (We discretize everything by rounding up.)
