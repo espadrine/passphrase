@@ -1,0 +1,26 @@
+{
+  "name": "passphrase",
+  "version": "1.0.0",
+  "description": "Generate cryptographically secure passphrases at a set entropy.",
+  "main": "main.js",
+  "scripts": {
+    "test": "node test.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:espadrine/passphrase.git"
+  },
+  "keywords": [
+    "crypto",
+    "passphrase",
+    "password",
+    "entropy",
+    "diceware"
+  ],
+  "author": "Thaddee Tyl <thaddee.tyl@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/espadrine/passphrase/issues"
+  },
+  "homepage": "https://github.com/espadrine/passphrase"
+}
