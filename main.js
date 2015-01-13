@@ -10,7 +10,12 @@ var words = fs.readFileSync('./words-en', {encoding:'utf8'})
 var wordCount = words.length;
 
 var log2 = function(n) { return Math.log(n) / Math.log(2); };
-var wordEntropy = log2(wordCount);
+
+// We require a number of words that is a power of 2,
+// to ensure that wordEntropy is a discrete integer.
+var wordEntropy = log2(wordCount)|0;
+wordCount = Math.pow(2, wordEntropy)|0;
+words = words.slice(0, wordCount);
 
 // entropy: requested lower bound of passphrase entropy; number in bits.
 // cb: callback, as function(err, string, actual entropy).
@@ -38,9 +43,12 @@ var passphrase = function(entropy, cb) {
   });
 };
 
+var filledUInt32 = 0x7fffffff;
+var wordIndexMask = filledUInt32 >> ((31 - wordEntropy)|0);
+
 var password = function(buf, i) {
-  var index = buf.readUInt32LE(i);
-  return words[index % wordCount];
+  var index = Math.abs(buf.readInt32LE(i));
+  return words[index & wordIndexMask];
 };
 
 module.exports = passphrase;
