@@ -1,11 +1,12 @@
 // Produce a passphrase.
 
 var fs = require('fs');
+var path = require('path');
 var crypto = require('crypto');
 
 // Read the word file.
 var notEmpty = function(line) { return line && line.length > 0; };
-var words = fs.readFileSync('./words-en', {encoding:'utf8'})
+var words = fs.readFileSync(path.join(__dirname, 'words-en'), {encoding:'utf8'})
     .split('\n').filter(notEmpty);
 var wordCount = words.length;
 
