@@ -16,6 +16,7 @@ var wordEntropy = log2(wordCount);
 // cb: callback, as function(err, string, actual entropy).
 var passphrase = function(entropy, cb) {
   if (entropy == null) { entropy = 64; }
+  if (entropy < 0) { cb(Error('Negative entropy')); return; }
 
   // How many words fill this entropy?
   // (We discretize everything by rounding up.)
