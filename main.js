@@ -44,12 +44,12 @@ var passphrase = function(entropy, cb) {
   });
 };
 
-var filledUInt32 = 0x7fffffff;
-var wordIndexMask = filledUInt32 >> ((31 - wordEntropy)|0);
+var filledUInt32 = 0xffffffff;
+var wordIndexMask = filledUInt32 >>> ((32 - wordEntropy)|0);
 
 var password = function(buf, i) {
-  var index = Math.abs(buf.readInt32LE(i));
-  return words[index & wordIndexMask];
+  var index = buf.readUInt32LE(i);
+  return words[(index & wordIndexMask) >>> 0];
 };
 
 module.exports = passphrase;
