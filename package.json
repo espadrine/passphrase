@@ -1,6 +1,6 @@
 {
   "name": "passphrase",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Generate cryptographically secure passphrases at a set entropy.",
   "main": "main.js",
   "scripts": {
