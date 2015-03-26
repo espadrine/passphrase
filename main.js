@@ -8,15 +8,10 @@ var crypto = require('crypto');
 var notEmpty = function(line) { return line && line.length > 0; };
 var words = fs.readFileSync(path.join(__dirname, 'words-en'), {encoding:'utf8'})
     .split('\n').filter(notEmpty);
-var wordCount = words.length;
 
 var log2 = function(n) { return Math.log(n) / Math.log(2); };
 
-// We require a number of words that is a power of 2,
-// to ensure that wordEntropy is a discrete integer.
-var wordEntropy = log2(wordCount)|0;
-wordCount = Math.pow(2, wordEntropy)|0;
-words = words.slice(0, wordCount);
+var wordEntropy = log2(words.length)|0;
 
 var chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()-=_+[]{};\'\\:"|,./<>?`~ ';
 var smallestWord = words.reduce(function(acc, word) {
@@ -67,12 +62,9 @@ var passphrase = function(entropy, cb) {
   });
 };
 
-var filledUInt32 = 0xffffffff;
-var wordIndexMask = filledUInt32 >>> ((32 - wordEntropy)|0);
-
 var password = function(buf, i) {
-  var index = buf.readUInt32LE(i);
-  return words[(index & wordIndexMask) >>> 0];
+  var rand = buf.readUInt32LE(i);
+  return words[randUInt32(rand, words.length - 1)];
 };
 
 var substitute = function(phrase, nsub, cb) {
