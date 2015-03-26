@@ -67,11 +67,13 @@ var password = function(buf, i) {
   return words[randUInt32(rand, words.length - 1)];
 };
 
-var substitute = function(phrase, nsub, cb) {
+var substitute = function(phrase, nsub, cb, _nerr, _indices) {
   phrase = '' + phrase;
   var phraseLen = phrase.length;
 
   if (nsub === 0) { cb(null, phrase); return; }
+  _indices = _indices || [];
+  _nerr = _nerr || 0;
 
   // The passphrase location is indexed by a 32-bit integer (4 bytes).
   // That index is scaled down to the size of the passphrase.
@@ -83,11 +85,17 @@ var substitute = function(phrase, nsub, cb) {
     var cindex = randByte(buf[4], chars.length - 1);
     var char = chars[cindex];
     // We disallow a substitution without change.
-    if (char === phrase[index]) {
-      substitute(phrase, nsub, cb);
+    if (char === phrase[index] || _indices.indexOf(index) >= 0) {
+      _nerr++;
+      if (_nerr > 1000) {
+        cb(new Error('Cannot perform substitution.'));
+      } else {
+        substitute(phrase, nsub, cb, _nerr, _indices);
+      }
     } else {
       phrase = phrase.slice(0, index) + char + phrase.slice(index + 1);
-      substitute(phrase, nsub - 1, cb);
+      _indices.push(index);
+      substitute(phrase, nsub - 1, cb, _nerr, _indices);
     }
   });
 };
