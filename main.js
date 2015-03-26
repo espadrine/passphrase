@@ -13,7 +13,7 @@ var log2 = function(n) { return Math.log(n) / Math.log(2); };
 
 var wordEntropy = log2(words.length)|0;
 
-var chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()-=_+[]{};\'\\:"|,./<>?`~ ';
+var chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()-=_+[]{};\'\\:"|,./<>?`~';
 var smallestWord = words.reduce(function(acc, word) {
   if (word.length < acc.length) { return word; }
   else { return acc; }
@@ -23,7 +23,7 @@ var charEntropy = (log2(chars.length)|0);
 // entropy: requested lower bound of passphrase entropy; number in bits.
 // cb: callback, as function(err, string, actual entropy).
 var passphrase = function(entropy, cb) {
-  var nsub = 3;  // Number of substitutions.
+  var nsub;  // Number of substitutions.
   if (typeof entropy === 'object') {
     nsub = entropy.substitutions;
     entropy = entropy.entropy;
@@ -34,6 +34,7 @@ var passphrase = function(entropy, cb) {
   // How many words fill this entropy?
   // (We discretize everything by rounding up.)
   var n = ((entropy / wordEntropy)|0) + 1;
+  nsub = (nsub === undefined)? (n >> 1) + 1: n;
 
   // Reduce needed number of words based on substitution entropy.
   entropy -= ((nsub * (charEntropy + (log2(n * smallestWord.length)|0)))|0);
@@ -71,7 +72,7 @@ var substitute = function(phrase, nsub, cb, _nerr, _indices) {
   phrase = '' + phrase;
   var phraseLen = phrase.length;
 
-  if (nsub === 0) { cb(null, phrase); return; }
+  if (nsub <= 0) { cb(null, phrase); return; }
   _indices = _indices || [];
   _nerr = _nerr || 0;
 
