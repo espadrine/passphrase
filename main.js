@@ -23,10 +23,12 @@ var charEntropy = (log2(chars.length)|0);
 // entropy: requested lower bound of passphrase entropy; number in bits.
 // cb: callback, as function(err, string, actual entropy).
 var passphrase = function(entropy, cb) {
-  var nsub;  // Number of substitutions.
+  var nsub = 0;  // Number of substitutions.
+  var nins = 0;  // Number of insertions.
   if (typeof entropy === 'object') {
-    nsub = entropy.substitutions;
-    entropy = entropy.entropy;
+    nsub = (entropy.substitutions|0) || 0;
+    nins = (entropy.insertions|0) || 0;
+    entropy = (entropy.entropy|0);
   }
   if (entropy == null) { entropy = 64; }
   if (entropy < 0) { cb(Error('Negative entropy')); return; }
@@ -34,10 +36,12 @@ var passphrase = function(entropy, cb) {
   // How many words fill this entropy?
   // (We discretize everything by rounding up.)
   var n = ((entropy / wordEntropy)|0) + 1;
-  nsub = (nsub === undefined)? (n >> 1) + 1: n;
 
   // Reduce needed number of words based on substitution entropy.
   entropy -= ((nsub * (charEntropy + (log2(n * smallestWord.length)|0)))|0);
+  n = ((entropy / wordEntropy)|0) + 1;
+  // Reduce needed number of words based on insertion entropy.
+  entropy -= ((nins * (charEntropy + (log2(n * smallestWord.length)|0)))|0);
   n = ((entropy / wordEntropy)|0) + 1;
 
   // Generate enough bytes to fill the exact entropy.
@@ -54,11 +58,15 @@ var passphrase = function(entropy, cb) {
     substitute(phrase, nsub, function(err, phrase) {
       if (err != null) { cb(err); return; }
 
-      // Actual entropy, given the number of words.
-      var aentr = wordEntropy * n
-        + nsub * (charEntropy + (log2(phraseLen)|0));
+      insert(phrase, nins, function(err, phrase) {
+        if (err != null) { cb(err); return; }
 
-      cb(null, phrase, aentr);
+        // Actual entropy, given the number of words.
+        var aentr = wordEntropy * n
+          + nsub * (charEntropy + (log2(phraseLen)|0));
+
+        cb(null, phrase, aentr);
+      });
     });
   });
 };
@@ -98,6 +106,26 @@ var substitute = function(phrase, nsub, cb, _nerr, _indices) {
       _indices.push(index);
       substitute(phrase, nsub - 1, cb, _nerr, _indices);
     }
+  });
+};
+
+var insert = function(phrase, nins, cb) {
+  phrase = '' + phrase;
+  var phraseLen = phrase.length;
+
+  if (nins <= 0) { cb(null, phrase); return; }
+
+  // The passphrase location is indexed by a 32-bit integer (4 bytes).
+  // That index is scaled down to the size of the passphrase.
+  // We assume the passphrase's length is < 4294967296.
+  // We add one byte to select the character.
+  crypto.randomBytes(5, function(err, buf) {
+    if (err != null) { cb(err); return; }
+    var index = randUInt32(buf.readUInt32LE(0), phraseLen);
+    var cindex = randByte(buf[4], chars.length - 1);
+    var char = chars[cindex];
+    phrase = phrase.slice(0, index) + char + phrase.slice(index);
+    insert(phrase, nins - 1, cb);
   });
 };
 
