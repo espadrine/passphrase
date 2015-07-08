@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 var entropy = (+process.argv[2]) || 64;
 var nins = (+process.argv[3]) || 1;
 var passphrase = require('./main.js');

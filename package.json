@@ -1,11 +1,8 @@
 {
   "name": "passphrase",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Generate cryptographically secure passphrases at a set entropy.",
   "main": "main.js",
-  "scripts": {
-    "test": "node test.js"
-  },
   "repository": {
     "type": "git",
     "url": "git@github.com:espadrine/passphrase.git"
@@ -22,5 +19,6 @@
   "bugs": {
     "url": "https://github.com/espadrine/passphrase/issues"
   },
+  "bin": { "passphrase": "./generate.js" },
   "homepage": "https://github.com/espadrine/passphrase"
 }
