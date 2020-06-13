@@ -1,0 +1,11 @@
+<!doctype html><title>Random passphrase</title>
+<p>Passphrase: “<output id=passphraseOutput></output>”.
+<p>Entropy: <output id=entropyOutput></output>.
+<script src=./browser.js></script>
+<script>
+  passphrase({entropy: 64, insertions: 1}, function(e, s, entr) {
+    if (e !== null) { console.error(e); }
+    passphraseOutput.textContent = s;
+    entropyOutput.textContent = entr;
+  });
+</script>
