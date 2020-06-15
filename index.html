@@ -4,7 +4,10 @@
 <script src=./browser.js></script>
 <script>
   passphrase({entropy: 64, insertions: 1}, function(e, s, entr) {
-    if (e !== null) { console.error(e); }
+    if (e !== null) {
+      console.error('Error generating password:', e);
+      alert('Error generating password. Maybe try with another browser.');
+    }
     passphraseOutput.textContent = s;
     entropyOutput.textContent = entr;
   });

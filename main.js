@@ -15,27 +15,34 @@
     var words = fs.readFileSync(path.join(__dirname, 'words-en'), {encoding:'utf8'})
         .split('\n').filter(notEmpty);
 
-    module.exports = factory({words: words, rand: crypto.randomBytes});
+    var rand = function(nbytes) {
+      return new Promise(function(resolve, reject) {
+        crypto.randomBytes(nbytes, function(err, buf) {
+          if (err !== null) { return reject(err); }
+          resolve(buf);
+        });
+      });
+    };
+
+    module.exports = factory({words: words, rand: rand});
 
   } else {
     // Browser environment.
 
-    // Take a number of bytes, and a callback
-    // with a random Uint8Array buffer.
-    //
-    // nbytes: number of bytes to feed.
-    // cb: callback; function(error, buffer),
-    //     where either the error or the buffer is null.
-    var rand = function(nbytes, cb) {
-      var buf = new Uint8Array(nbytes);
-      try {
-        // While the browser function is synchronous,
-        // we provide an async wrapper to have a common interface with Node.js.
-        root.crypto.getRandomValues(buf);
-      } catch(e) {
-        return cb(e, null);
-      }
-      cb(null, buf);
+    // Take a number of bytes of randomness to generate.
+    // Returns a promise with a random Uint8Array buffer.
+    var rand = function(nbytes) {
+      return new Promise(function(resolve, reject) {
+        var buf = new Uint8Array(nbytes);
+        try {
+          // While the browser function is synchronous,
+          // we provide an async wrapper to have a common interface with Node.js.
+          root.crypto.getRandomValues(buf);
+        } catch(e) {
+          return reject(e);
+        }
+        resolve(buf);
+      });
     };
 
     // If you are reading this because this function was undefined,
@@ -63,142 +70,111 @@
 
   // entropy: requested lower bound of passphrase entropy; number in bits.
   // cb: callback, as function(err, string, actual entropy).
-  var passphrase = function(entropy, cb) {
-    var nsub = 0;  // Number of substitutions.
+  var passphraseGen = function(entropy, cb) {
     var nins = 0;  // Number of insertions.
     if (typeof entropy === 'object') {
-      nsub = (entropy.substitutions|0) || 0;
       nins = (entropy.insertions|0) || 0;
       entropy = (entropy.entropy|0);
     }
-    if (entropy == null) { entropy = 64; }
+    if (entropy == null) { entropy = 77; }
     if (entropy < 0) { cb(Error('Negative entropy')); return; }
 
     // How many words fill this entropy?
     // (We discretize everything by rounding up.)
     var n = ((entropy / wordEntropy)|0) + 1;
 
-    // Reduce needed number of words based on substitution entropy.
-    entropy -= ((nsub * (charEntropy + (log2(n * smallestWord.length)|0)))|0);
-    n = ((entropy / wordEntropy)|0) + 1;
     // Reduce needed number of words based on insertion entropy.
     entropy -= ((nins * (charEntropy + (log2(n * smallestWord.length)|0)))|0);
     n = ((entropy / wordEntropy)|0) + 1;
 
-    // Generate enough bytes to fill the exact entropy.
-    // Each word is indexed by a 32-bit integer (4 bytes).
-    rand(n << 2, function(err, buf) {
-      if (err != null) { cb(err); return; }
-      var words = [];
-      for (var i = 0; i < (4 * n); i += 4) {
-        words.push(password(buf, i));
+    randPhrase(n)
+    .then(function(state) { return randInserts(state, nins); })
+    .then(function(state) { cb(null, state.passphrase, state.entropy); })
+    .catch(cb);
+  };
+
+  var randPhrase = function(nwords) {
+    return new Promise(function(resolve, reject) {
+      var wordgen = [];
+      for (var i = 0; i < nwords; i++) {
+        wordgen.push(randWord());
       }
-      var phrase = words.join(' ');
-      var phraseLen = phrase.length;
-      // Actual entropy, given the number of words.
-      var aentr = wordEntropy * n;
-
-      substitute(phrase, nsub, function(err, phrase, entr) {
-        if (err != null) { cb(err); return; }
-        aentr += entr;
-
-        insert(phrase, nins, function(err, phrase, entr) {
-          if (err != null) { cb(err); return; }
-          aentr += entr;
-
-          cb(null, phrase, aentr|0);
+      return Promise.all(wordgen).then(function(words) {
+        resolve({
+          passphrase: words.map(function(w) { return w.passphrase; }).join('-'),
+          entropy: words.reduce(function(acc, w) { return acc + w.entropy; }, 0)
         });
       });
     });
   };
 
-  var password = function(buf, i) {
-    var rand = readUInt32LE(buf, i);
-    return words[randUInt32(rand, words.length - 1)];
+  // Return a promise of a single randomly picked word.
+  var randWord = function() {
+    return new Promise(function(resolve, reject) {
+      return randInt(words.length).then(function(wordIndex) {
+        resolve({passphrase: words[wordIndex], entropy: wordEntropy});
+      });
+    });
   };
 
-  // Substitute nsub characters in the phrase.
-  // The callback cb is a function(err, phrase, entropy).
-  var substitute = function(phrase, nsub, cb, _nerr, _indices, _entr) {
-    phrase = String(phrase);
-    var phraseLen = phrase.length;
-    _indices = _indices || [];
-    _nerr = _nerr || 0;
-    _entr = _entr || 0;
+  // Insert random characters at random positions in the phrase.
+  var randInserts = function(state, nins) {
+    var p = Promise.resolve(state);
+    for (var i = 0; i < nins; i++) {
+      p = p.then(randInsert);
+    }
+    return p;
+  };
 
-    if (nsub <= 0) { cb(null, phrase, _entr); return; }
+  // Insert a random character at a random position in the phrase.
+  var randInsert = function(state) {
+    return new Promise(function(resolve, reject) {
+      phrase = String(state.passphrase);
+      entr = state.entropy || 0;
 
-    // The passphrase location is indexed by a 32-bit integer (4 bytes).
-    // That index is scaled down to the size of the passphrase.
-    // We assume the passphrase's length is < 4294967296.
-    // We add one byte to select the character.
-    rand(5, function(err, buf) {
-      if (err != null) { cb(err); return; }
-      var index = randUInt32(readUInt32LE(buf, 0), phraseLen);
-      var cindex = randByte(buf[4], chars.length - 1);
-      var char = chars[cindex];
-      // We disallow a substitution without change.
-      if (char === phrase[index] || _indices.indexOf(index) >= 0) {
-        _nerr++;
-        if (_nerr > 1000) {
-          cb(new Error('Cannot perform substitution.'));
-        } else {
-          substitute(phrase, nsub, cb, _nerr, _indices, _entr);
+      // Pick an insert position, including the end.
+      return randInt(phrase.length + 1).then(function(idx) {
+        // Pick a character to insert.
+        return randChar().then(function(state) {
+          resolve({
+            passphrase: phrase.slice(0, idx) + state.passphrase
+                      + phrase.slice(idx),
+            entropy: state.entropy + entr,
+          });
+        });
+      });
+    });
+  };
+
+  var randChar = function() {
+    return new Promise(function(resolve, reject) {
+      return randInt(chars.length).then(function(idx) {
+        resolve({passphrase: chars[idx], entropy: charEntropy});
+      });
+    });
+  };
+
+  // Return a random integer below max excluded, 0 included.
+  var randInt = function(max) {
+    return new Promise(function(resolve, reject) {
+      var nbits = Math.ceil(log2(max));
+      var nbytes = Math.ceil(nbits/8);
+      return rand(nbytes).then(function(buf) {
+        // Reduce the last byte to fit in the minimum power of two
+        // required for the max.
+        var extraBits = nbytes * 8 - nbits;
+        buf[nbytes-1] &= 0xff >>> extraBits;
+        // Convert to a number.
+        var n = buf[0];
+        for (var i = 1; i < nbytes; i++) {
+          n |= buf[i] << (8*i);
         }
-      } else {
-        phrase = phrase.slice(0, index) + char + phrase.slice(index + 1);
-        _indices.push(index);
-        // Newly added entropy from this substitution.
-        var nentr = charEntropy + log2(phraseLen + 1);
-        substitute(phrase, nsub - 1, cb, _nerr, _indices, _entr + nentr);
-      }
+        // Reject the number if too high.
+        if (n < max) { resolve(n); }
+        else { return randInt(max).then(resolve).catch(reject); }
+      });
     });
   };
 
-  // Insert nins random characters at random positions in the phrase.
-  var insert = function(phrase, nins, cb, _nentr) {
-    phrase = '' + phrase;
-    var phraseLen = phrase.length;
-    _nentr = _nentr || 0;
-
-    if (nins <= 0) { cb(null, phrase, _nentr); return; }
-
-    // The passphrase location is indexed by a 32-bit integer (4 bytes).
-    // That index is scaled down to the size of the passphrase.
-    // We assume the passphrase's length is < 4294967296.
-    // We add one byte to select the character.
-    rand(5, function(err, buf) {
-      if (err != null) { cb(err); return; }
-      var index = randUInt32(readUInt32LE(buf, 0), phraseLen);
-      var cindex = randByte(buf[4], chars.length - 1);
-      var char = chars[cindex];
-      phrase = phrase.slice(0, index) + char + phrase.slice(index);
-      // Newly added entropy from this insertion.
-      var nentr = charEntropy + log2(phraseLen + 1);
-      insert(phrase, nins - 1, cb, _nentr + nentr);
-    });
-  };
-
-  // Get a random index in [0, length] given a 32-bit random number.
-  // length must be below 4294967296.
-  function randUInt32(rand, length) {
-    return ((rand / 4294967295 * length)|0);
-  }
-
-  // Get a random index in [0, length] given a random byte.
-  // length must be below 256.
-  function randByte(rand, length) {
-    return ((rand / 255 * length)|0);
-  }
-
-  // Read a Uint8Array buf starting at index i,
-  // consume 4 bytes, and return the Uint32 at that location in little endian.
-  var readUInt32LE = function(buf, i) {
-    return (buf[i + 0] <<  0) |
-           (buf[i + 1] <<  8) |
-           (buf[i + 2] << 16) |
-           (buf[i + 3] << 24) & ~(1 << 31);
-  };
-
-  return passphrase;
+  return passphraseGen;
 }));
