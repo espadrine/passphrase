@@ -58172,7 +58172,7 @@ var words = [
 
   var wordEntropy = log2(words.length);
 
-  var chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()-=_+[]{};\'\\:"|,./<>?`~';
+  var chars = '0123456789!@#$%^&*()-=_+[]{};\'\\:"|,./<>?`~';
   var smallestWord = words.reduce(function(acc, word) {
     if (word.length < acc.length) { return word; }
     else { return acc; }
@@ -58192,11 +58192,14 @@ var words = [
 
     // How many words fill this entropy?
     // (We discretize everything by rounding up.)
-    var n = ((entropy / wordEntropy)|0) + 1;
+    // This comes from the formula:
+    // entropy = n·wordEntropy + (n-1)·charEntropy
+    // since there is one char inserted between each word.
+    var n = Math.ceil((entropy + charEntropy) / (wordEntropy + charEntropy));
 
     // Reduce needed number of words based on insertion entropy.
-    entropy -= ((nins * (charEntropy + (log2(n * smallestWord.length)|0)))|0);
-    n = ((entropy / wordEntropy)|0) + 1;
+    entropy -= Math.floor(nins * (charEntropy + log2(n * smallestWord.length)));
+    n = Math.ceil((entropy + charEntropy) / (wordEntropy + charEntropy));
 
     randPhrase(n)
     .then(function(state) { return randInserts(state, nins); })
@@ -58209,10 +58212,12 @@ var words = [
       var wordgen = [];
       for (var i = 0; i < nwords; i++) {
         wordgen.push(randWord());
+        wordgen.push(randChar());
       }
+      wordgen.pop();
       return Promise.all(wordgen).then(function(words) {
         resolve({
-          passphrase: words.map(function(w) { return w.passphrase; }).join('-'),
+          passphrase: words.map(function(w) { return w.passphrase; }).join(''),
           entropy: words.reduce(function(acc, w) { return acc + w.entropy; }, 0)
         });
       });
