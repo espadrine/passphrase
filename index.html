@@ -1,14 +1,39 @@
 <!doctype html><title>Random passphrase</title>
-<p>Passphrase: “<output id=passphraseOutput></output>”.
-<p>Entropy: <output id=entropyOutput></output>.
+<p>Expected time left to live: <input type=number value=246 id=yearsInput> years.
+<p>Yearly budget of adversaries:
+  <input type=number value=10000000 id=costInput> thousand euros.
+<p><button id=genBut>Generate password</button>
+<p><strong>Generated passphrase:</strong>
+  <code><output id=passphraseOutput>Awaiting generation</output></code>.
+<p>Entropy: <output id=entropyOutput>Awaiting generation</output> bits.
 <script src=./browser.js></script>
 <script>
-  passphrase({entropy: 64, insertions: 1}, function(e, s, entr) {
-    if (e !== null) {
+  // Lifetime in years of life left, budget in million euros.
+  function genpw(params = {lifetime: 246, budget: 10000000}) {
+    return new Promise(function(resolve, reject) {
+      var entropy = (Math.log(params.budget/12) + Math.log(1000/0.03)
+          + Math.log(params.lifetime) + Math.log(365*24*3600/0.005))
+        / Math.log(2) + 1;
+      passphrase({entropy: entropy}, function(e, s, entr) {
+        if (e !== null) { reject(e); return; }
+        resolve({passphrase: s, entropy: entr});
+      });
+    });
+  }
+
+  function computepw() {
+    genpw({lifetime: +yearsInput.value, budget: +costInput.value})
+    .then(function(state) {
+      passphraseOutput.textContent = state.passphrase;
+      entropyOutput.textContent = state.entropy.toFixed(2);
+    }).catch(function(e) {
       console.error('Error generating password:', e);
       alert('Error generating password. Maybe try with another browser.');
-    }
-    passphraseOutput.textContent = s;
-    entropyOutput.textContent = entr;
+    });
+  }
+
+  addEventListener('DOMContentLoaded', function() {
+    computepw();
+    genBut.addEventListener('click', computepw);
   });
 </script>
