@@ -1,11 +1,14 @@
 <!doctype html><title>Random passphrase</title>
+<h1>Strong Memorable Passphrase Generator</h1>
 <p>Expected time left to live: <input type=number value=246 id=yearsInput> years.
 <p>Yearly budget of adversaries:
   <input type=number value=10000000 id=costInput> thousand euros.
-<p><button id=genBut>Generate password</button>
+<p><button id=genBut>Generate passphrase</button>
+  <button id=hideBut>Show passphrase</button>
 <p><strong>Generated passphrase:</strong>
   <code><output id=passphraseOutput>Awaiting generation</output></code>.
 <p>Entropy: <output id=entropyOutput>Awaiting generation</output> bits.
+
 <script src=./browser.js></script>
 <script>
   // Lifetime in years of life left, budget in million euros.
@@ -24,16 +27,35 @@
   function computepw() {
     genpw({lifetime: +yearsInput.value, budget: +costInput.value})
     .then(function(state) {
-      passphraseOutput.textContent = state.passphrase;
-      entropyOutput.textContent = state.entropy.toFixed(2);
+      password = state;
+      showPasswords();
     }).catch(function(e) {
       console.error('Error generating password:', e);
       alert('Error generating password. Maybe try with another browser.');
     });
   }
 
+  var password = null;
+
+  function showPasswords() {
+    if (passphrasesAreHidden) {
+      passphraseOutput.textContent = hiddenPassword;
+    } else {
+      passphraseOutput.textContent = password.passphrase;
+    }
+    entropyOutput.textContent = password.entropy.toFixed(2);
+  }
+
+  var passphrasesAreHidden = true;
+  var hiddenPassword = '████████████████████████████';
+  function toggleHide() {
+    passphrasesAreHidden = !passphrasesAreHidden;
+    showPasswords();
+  }
+
   addEventListener('DOMContentLoaded', function() {
     computepw();
     genBut.addEventListener('click', computepw);
+    hideBut.addEventListener('click', toggleHide);
   });
 </script>
