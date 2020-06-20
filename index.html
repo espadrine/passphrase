@@ -1,4 +1,36 @@
 <!doctype html><title>Random passphrase</title>
+<style>
+  html {
+    font-family: Helvetica Neue, Source Sans Pro, sans-serif;
+    color: #715566;
+    background-color: #e6ebea;
+  }
+
+  h1 {
+    text-align: center;
+    margin: 1rem 0 2rem;
+  }
+  nav > ul { list-style: none; }
+  a {
+    color: #f55b2c;
+    text-decoration: none;
+  }
+  a:hover {
+    color: #616566;
+    background-color: #fff7a5;
+  }
+
+  body {
+    max-width: 70ch;
+    margin: 1rem auto;
+    padding: 0 8px;
+  }
+
+  input[type="number"] {
+    width: 12ch;
+  }
+</style>
+
 <h1>Strong Memorable Passphrase Generator</h1>
 <p>The secrecy of your master password must survive you, and its strength must
   hold against adversaries that are ready to spend substantially every year to
@@ -36,6 +68,13 @@
   <li>You must trust your operating system and hardware,
     from the CPU to the RAM.
 </ol>
+<p>
+  To be fully honest, even then, I tend to be extra cautious when generating
+  passwords. I load the page from a fresh OS (typically booted from a live USB),
+  I verify the source code, I disconnect and Faraday-cage the computer;
+  only then do I generate the passphrase, and once the password memorized,
+  I shut down the laptop without reconnecting to the Internet and scrub all
+  remains of the OS.
 
 <script src=./browser.js></script>
 <script>
