@@ -42,7 +42,8 @@
 <p><button id=genBut>Generate passphrase</button>
   <button id=hideBut>Show passphrase</button>
 <p><strong>Generated passphrase:</strong>
-  <code><output id=passphraseOutput>████████████████████████████</output></code>.
+  <code><output id=passphraseOutput>████████████████████████████</output></code>
+  <button id=copyBut>📋</button>.
 <p>Entropy: <output id=entropyOutput>Awaiting generation</output> bits.
 <p>
   The password is generated locally on your computer.
@@ -125,9 +126,18 @@
     showPasswords();
   }
 
+  function copypw() {
+    navigator.clipboard.writeText(password.passphrase)
+    .catch(function(e) {
+      console.error('Clipboard copy failed:', e);
+      alert('Failed to copy to clipboard.');
+    });
+  }
+
   addEventListener('DOMContentLoaded', function() {
     computepw();
     genBut.addEventListener('click', computepw);
     hideBut.addEventListener('click', toggleHide);
+    copyBut.addEventListener('click', copypw);
   });
 </script>
