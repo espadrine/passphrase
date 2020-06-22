@@ -134,6 +134,11 @@
     });
   }
 
+  // Poor man’s HSTS.
+  if (location.protocol === 'http:') {
+    location.protocol = 'https:';
+  }
+
   addEventListener('DOMContentLoaded', function() {
     computepw();
     genBut.addEventListener('click', computepw);
