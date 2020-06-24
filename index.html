@@ -32,10 +32,12 @@
 </style>
 
 <h1>Strong Memorable Passphrase Generator</h1>
-<p>The secrecy of your master password must survive you, and its strength must
-  hold against adversaries that are ready to spend substantially every year to
-  eventually crack it. The default values below correspond to twice the
-  longest-living person to date, and to the yearly budget of the NSA.
+<p>The secrecy of your master password must survive you,
+  and its strength must hold against adversaries
+  that are ready to spend substantially every year to eventually crack it.
+  The default values below
+  correspond to twice the longest-living person to date,
+  and to the yearly budget of the NSA.
 <p>Expected time left to live: <input type=number value=246 id=yearsInput> years.
 <p>Yearly budget of adversaries:
   <input type=number value=10000000 id=costInput> thousand euros.
@@ -53,21 +55,27 @@
   <li>You must trust me (admittedly, the harder step). I claim to have not put
     anything malicious in
     <a href='https://github.com/espadrine/passphrase/'>the code</a>,
-    and I believe there are no mistakes in the implemetation of the algorithms.
+    and I believe there are no mistakes in the implementation of the algorithms.
     However, I disclaim any express or implied warranty or liability
     from the use of this page or software.
     I will not give write access to the website’s code to anyone,
     so at least you only need to trust a single person.
-  <li>You must trust Github to deliver the website’s content correctly and
-    securely. If Github is malicious, it could server a different page that
-    sends the passphrases somewhere. If Github is incompetent, the TLS
-    connection used to secure the transmission could be tampered with by a
-    malicious actor that inserts encrypted content to send passphrases to them.
-  <li>You must trust your Web browser. It has access to all that you see in your
-    window and more. Additionally, we rely on the JS cryptographic primitives it
-    provides, so if the software is badly written, it may yield faulty
-    randomness; and if the tab separation is weak, other webpages in the
-    browser might be able to extract information from this page.
+  <li>You must trust Github
+    to deliver the website’s content correctly and securely.
+    If Github is malicious,
+    it could server a different page that sends the passphrases somewhere.
+    If Github is incompetent,
+    the TLS connection used to secure the transmission could be tampered with
+    by a malicious actor that inserts encrypted content
+    to send passphrases to them.
+  <li>You must trust your Web browser.
+    It has access to all that you see in your window and more.
+    Additionally, we rely on the JS cryptographic primitives it provides,
+    so if the software is badly written,
+    it may yield faulty randomness;
+    and if the tab separation is weak,
+    other webpages in the browser
+    might be able to extract information from this page.
   <li>You must trust your operating system and hardware,
     from the CPU to the RAM.
 </ol>
